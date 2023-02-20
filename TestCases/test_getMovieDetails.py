@@ -6,14 +6,14 @@ from Utilities.CustomLogger import customLogger
 import jsonpath
 
 
-class tvPrograms(unittest.TestCase):
+class Tv_programs(unittest.TestCase):
     baseurl = readConfig('baseUrl', 'baseUrl')
     print(baseurl)
     payload = f"api_key={readConfig('APIKey', 'api')}&language={readConfig('language', 'lang')}"
     log = customLogger()
 
     @pytest.mark.getLatestMovies
-    def test_getLatestMovies(self):
+    def test_get_latestMovies(self):
         url = f"{self.baseurl}{readConfig('type','movie')}/{readConfig('ids','latest')}"
         response = requests.get(url, self.payload)
         print(response.status_code)
@@ -22,7 +22,7 @@ class tvPrograms(unittest.TestCase):
         assert response.status_code == 200
 
     @pytest.mark.getTopRatedMovies
-    def test_getTopRatedMovies(self):
+    def test_get_topRatedMovies(self):
         url = f"{self.baseurl}{readConfig('type','movie')}/{readConfig('ids','rated')}"
         response = requests.get(url, self.payload)
         print(response.status_code)
@@ -38,7 +38,7 @@ class tvPrograms(unittest.TestCase):
                 print(str(vote_rating), "---", str(False))
 
     @pytest.mark.getMovieById
-    def test_getMovieById(self):
+    def test_get_movieById(self):
         url = f"{self.baseurl}{readConfig('type', 'movie')}/{readConfig('ids', 'movieId')}"
         payload = f"api_key={readConfig('APIKey', 'api')}"
         response = requests.get(url, payload)

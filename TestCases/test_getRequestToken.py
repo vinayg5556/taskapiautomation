@@ -14,7 +14,7 @@ apiToken = readConfig('APIKey', 'api')
 log = customLogger()
 
 @pytest.mark.tokenGenerate
-def test_generateToken():
+def test_generate_token():
     url = f"{readConfig('baseUrl', 'baseUrl')}authentication/token/new"
     payload = f"api_key={apiToken}"
     response = requests.get(url, payload)
@@ -25,11 +25,11 @@ def test_generateToken():
     return token
 
 
-requestToken = test_generateToken()
+requestToken = test_generate_token()
 
 
 @pytest.mark.approveRequest
-def test_getApproveRequest():
+def test_get_approve_request():
     print(requestToken)
     time.sleep(5)
     url = f"http://www.themoviedb.org/authenticate/{requestToken}"
@@ -52,8 +52,8 @@ def test_getApproveRequest():
 
 
 @pytest.mark.createSession
-def test_createSession():
-    test_getApproveRequest()
+def test_create_session():
+    test_get_approve_request()
     url = f"https://api.themoviedb.org/3/authentication/session/new?api_key={apiToken}&request_token={requestToken}"
     response = requests.post(url)
     print(response.status_code)

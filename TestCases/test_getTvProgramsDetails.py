@@ -6,13 +6,13 @@ from Utilities.CustomLogger import customLogger
 import jsonpath
 
 
-class tvPrograms(unittest.TestCase):
+class Tv_programs(unittest.TestCase):
     baseUrl = readConfig('baseUrl', 'baseUrl')
     payload = f"api_key={readConfig('APIKey', 'api')}&language={readConfig('language', 'lang')}"
     log = customLogger()
 
     @pytest.mark.tvProgrammeDetails
-    def test_getTvProgrammeDetails(self):
+    def test_get_tv_programme_details(self):
         url = f"{self.baseUrl}{readConfig('type', 'tv')}/{readConfig('ids', 'programmeTvId')}"
         response = requests.get(url, self.payload)
         programmeName = jsonpath.jsonpath(response.json(), 'original_name')
@@ -23,7 +23,7 @@ class tvPrograms(unittest.TestCase):
         assert programmeName[0] == "Bhagya Lakshmi"
 
     @pytest.mark.topRatedTvProgrammes
-    def test_getTvTopRatedPrograms(self):
+    def test_get_tv_top_rated_programs(self):
         url = f"{self.baseUrl}{readConfig('type', 'tv')}/{readConfig('ids', 'rated')}"
         response = requests.get(url, self.payload)
         for i in range(len(jsonpath.jsonpath(response.json(), 'results')[0])):
@@ -33,7 +33,7 @@ class tvPrograms(unittest.TestCase):
         assert response.status_code == 200
 
     @pytest.mark.getTvEpisodeInfo
-    def test_getTvEpisodes(self):
+    def test_get_tv_episodes(self):
         url = f"{self.baseUrl}{readConfig('type', 'tv')}/{readConfig('ids', 'episodesTvId')}/{readConfig('type', 'season')}/{readConfig('ids', 'seasonId')}/{readConfig('type', 'episode')}/{readConfig('ids', 'episodeId')}"
         response = requests.get(url, self.payload)
         episode = jsonpath.jsonpath(response.json(), 'episode_number')
