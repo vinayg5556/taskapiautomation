@@ -1,0 +1,4 @@
+17/02/23 02:17:22 PM Friday - <module> - INFO : token has been generated for the request and token is f0c4cc366a0efec3fbab32413d33311891fdb21e and the response from serever is 200 for generateToken request
+17/02/23 02:17:48 PM Friday - <module> - INFO : approve request has been completed
+17/02/23 02:17:49 PM Friday - <module> - INFO : got response from server as 200 and the response body is {'success': True, 'session_id': '80c959ed0b36359d60ecaa83ee1be6c0698a8525'} for the request createSession
+17/02/23 02:17:50 PM Friday - postData - INFO : got response from server as 201 and the response body as {'success': True, 'status_code': 12, 'status_message': 'The item/record was updated successfully.'} for the request postMovieRating

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>apiTestReport.html</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    let visibleString = getQueryParameter('visible') || 'all';
+    visibleString = visibleString.toLowerCase();
+    const checkedItems = visibleString.split(',');
+
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++) {
+        filterItems[i].hidden = false;
+
+        if (visibleString != 'all') {
+            filterItems[i].checked = checkedItems.includes(filterItems[i].getAttribute('data-test-result'));
+            filterTable(filterItems[i]);
+        }
+    }
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>apiTestReport.html</h1>
+    <p>Report generated on 15-Feb-2023 at 08:53:42 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.2.0</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "1.0.0", "pytest": "7.2.1"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>Linux-5.14.0-1057-oem-x86_64-with-glibc2.31</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"html": "3.2.0", "metadata": "2.0.4"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.9.16</td></tr></table>
+    <h2>Summary</h2>
+    <p>3 tests ran in 0.20 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">3 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_getTvProgramsDetails.py::tvPrograms::test_getTvEpisodes</td>
+          <td class="col-duration">0.03</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     tvPrograms:test_getTvProgramsDetails.py:42 got the response status as 200 and response as {&quot;air_date&quot;:&quot;2022-09-28&quot;,&quot;crew&quot;:[],&quot;episode_number&quot;:1,&quot;guest_stars&quot;:[{&quot;character&quot;:&quot;Self&quot;,&quot;credit_id&quot;:&quot;615cb6620c12550029f33657&quot;,&quot;order&quot;:515,&quot;adult&quot;:false,&quot;gender&quot;:2,&quot;id&quot;:3032312,&quot;known_for_department&quot;:&quot;Acting&quot;,&quot;name&quot;:&quot;Noah Beck&quot;,&quot;original_name&quot;:&quot;Noah Beck&quot;,&quot;popularity&quot;:7.531,&quot;profile_path&quot;:&quot;/cht7kEgq3AlDMyzLzqKcXmAzh9o.jpg&quot;},{&quot;character&quot;:&quot;Self&quot;,&quot;credit_id&quot;:&quot;615e0ac7d14443002c0f93ef&quot;,&quot;order&quot;:518,&quot;adult&quot;:false,&quot;gender&quot;:0,&quot;id&quot;:3261033,&quot;known_for_department&quot;:&quot;Acting&quot;,&quot;name&quot;:&quot;Cate Wright&quot;,&quot;original_name&quot;:&quot;Cate Wright&quot;,&quot;popularity&quot;:0.6,&quot;profile_path&quot;:null},{&quot;character&quot;:&quot;Self&quot;,&quot;credit_id&quot;:&quot;634356f5cdf2e6007f318621&quot;,&quot;order&quot;:534,&quot;adult&quot;:false,&quot;gender&quot;:2,&quot;id&quot;:1234190,&quot;known_for_department&quot;:&quot;Acting&quot;,&quot;name&quot;:&quot;Blake McGrath&quot;,&quot;original_name&quot;:&quot;Blake McGrath&quot;,&quot;popularity&quot;:1.38,&quot;profile_path&quot;:&quot;/9d5TCjwElRGtpGZGmPBbMMo01al.jpg&quot;}],&quot;name&quot;:&quot;Somewhere to Start&quot;,&quot;overview&quot;:&quot;Charli secretly considers a new creative pursuit, while Dixie prepares for her first tour. Dixie and Noah face uncertainty as their careers grow. Charli agrees to come out of dance retirement in a big way.&quot;,&quot;id&quot;:3865798,&quot;production_code&quot;:&quot;&quot;,&quot;runtime&quot;:35,&quot;season_number&quot;:2,&quot;still_path&quot;:&quot;/qEU6tjupjXcOVl099qq0kFjvjxK.jpg&quot;,&quot;vote_average&quot;:9.517,&quot;vote_count&quot;:87} for the request getTvEpisodesInfo<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_getTvProgramsDetails.py::tvPrograms::test_getTvProgrammeDetails</td>
+          <td class="col-duration">0.03</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>Bhagya Lakshmi
+<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     tvPrograms:test_getTvProgramsDetails.py:20 got the response status as 200 and response is {&quot;adult&quot;:false,&quot;backdrop_path&quot;:&quot;/3FLHePl9Y3n4BidLVjIA9qSRDOE.jpg&quot;,&quot;created_by&quot;:[],&quot;episode_run_time&quot;:[],&quot;first_air_date&quot;:&quot;2021-08-03&quot;,&quot;genres&quot;:[{&quot;id&quot;:10766,&quot;name&quot;:&quot;Soap&quot;}],&quot;homepage&quot;:&quot;https://www.zee5.com/global/tv-shows/details/bhagya-lakshmi/0-6-3392&quot;,&quot;id&quot;:130542,&quot;in_production&quot;:true,&quot;languages&quot;:[&quot;hi&quot;],&quot;last_air_date&quot;:&quot;2023-02-14&quot;,&quot;last_episode_to_air&quot;:{&quot;air_date&quot;:&quot;2023-02-14&quot;,&quot;episode_number&quot;:489,&quot;id&quot;:4222415,&quot;name&quot;:&quot;Episode 489&quot;,&quot;overview&quot;:&quot;&quot;,&quot;production_code&quot;:&quot;&quot;,&quot;runtime&quot;:null,&quot;season_number&quot;:1,&quot;show_id&quot;:130542,&quot;still_path&quot;:null,&quot;vote_average&quot;:0.0,&quot;vote_count&quot;:0},&quot;name&quot;:&quot;Bhagya Lakshmi&quot;,&quot;next_episode_to_air&quot;:{&quot;air_date&quot;:&quot;2023-02-15&quot;,&quot;episode_number&quot;:490,&quot;id&quot;:4222416,&quot;name&quot;:&quot;Episode 490&quot;,&quot;overview&quot;:&quot;&quot;,&quot;production_code&quot;:&quot;&quot;,&quot;runtime&quot;:null,&quot;season_number&quot;:1,&quot;show_id&quot;:130542,&quot;still_path&quot;:null,&quot;vote_average&quot;:0.0,&quot;vote_count&quot;:0},&quot;networks&quot;:[{&quot;id&quot;:2590,&quot;name&quot;:&quot;ZEE5&quot;,&quot;logo_path&quot;:&quot;/cakduIXxOWnOasbKSMZ6Xvw5REG.png&quot;,&quot;origin_country&quot;:&quot;IN&quot;},{&quot;id&quot;:5370,&quot;name&quot;:&quot;Zee Alwan&quot;,&quot;logo_path&quot;:&quot;/RlFwcvtmKITv83XXAoOtoD6gfB.png&quot;,&quot;origin_country&quot;:&quot;SA&quot;}],&quot;number_of_episodes&quot;:490,&quot;number_of_seasons&quot;:1,&quot;origin_country&quot;:[&quot;IN&quot;],&quot;original_language&quot;:&quot;hi&quot;,&quot;original_name&quot;:&quot;Bhagya Lakshmi&quot;,&quot;overview&quot;:&quot;Hailing from a middle-class family, Lakshmi’s life is upended when she realises that her marriage to Rishi Oberoi, an industrialist’s son, is a sham to keep his death at bay.&quot;,&quot;popularity&quot;:3039.874,&quot;poster_path&quot;:&quot;/7wuKrFvbX7kAIF0ctotARsqayPo.jpg&quot;,&quot;production_companies&quot;:[],&quot;production_countries&quot;:[{&quot;iso_3166_1&quot;:&quot;IN&quot;,&quot;name&quot;:&quot;India&quot;}],&quot;seasons&quot;:[{&quot;air_date&quot;:&quot;2021-08-03&quot;,&quot;episode_count&quot;:490,&quot;id&quot;:204689,&quot;name&quot;:&quot;Season 1&quot;,&quot;overview&quot;:&quot;&quot;,&quot;poster_path&quot;:null,&quot;season_number&quot;:1}],&quot;spoken_languages&quot;:[{&quot;english_name&quot;:&quot;Hindi&quot;,&quot;iso_639_1&quot;:&quot;hi&quot;,&quot;name&quot;:&quot;हिन्दी&quot;}],&quot;status&quot;:&quot;Returning Series&quot;,&quot;tagline&quot;:&quot;&quot;,&quot;type&quot;:&quot;Scripted&quot;,&quot;vote_average&quot;:4.975,&quot;vote_count&quot;:20} for the request getTvProgrammeDetails<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_getTvProgramsDetails.py::tvPrograms::test_getTvTopRatedPrograms</td>
+          <td class="col-duration">0.04</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>The D&#x27;Amelio Show
+Breaking Bad
+The Last of Us
+Arcane
+Rick and Morty
+Chainsaw Man
+Hitoribocchi no Marumaruseikatsu
+One Piece
+Anne with an E
+Invincible
+Fullmetal Alchemist: Brotherhood
+Goblin
+Demon Slayer: Kimetsu no Yaiba
+Kaguya-sama: Love Is War
+My Hero Academia
+Asobi Asobase - workshop of fun -
+Regular Show
+Avatar: The Last Airbender
+DARLING in the FRANXX
+The Kardashians
+<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     tvPrograms:test_getTvProgramsDetails.py:32 got the response status as 200 and response as {&quot;page&quot;:1,&quot;results&quot;:[{&quot;backdrop_path&quot;:&quot;/99vBORZixICa32Pwdwj0lWcr8K.jpg&quot;,&quot;first_air_date&quot;:&quot;2021-09-03&quot;,&quot;genre_ids&quot;:[10764],&quot;id&quot;:130392,&quot;name&quot;:&quot;The D&#x27;Amelio Show&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;The D&#x27;Amelio Show&quot;,&quot;overview&quot;:&quot;From relative obscurity and a seemingly normal life, to overnight success and thrust into the Hollywood limelight overnight, the D’Amelios are faced with new challenges and opportunities they could not have imagined.&quot;,&quot;popularity&quot;:18.799,&quot;poster_path&quot;:&quot;/phv2Jc4H8cvRzvTKb9X1uKMboTu.jpg&quot;,&quot;vote_average&quot;:9,&quot;vote_count&quot;:3173},{&quot;backdrop_path&quot;:&quot;/hwIAR9FDsKULo8efoOUuxsFtO2u.jpg&quot;,&quot;first_air_date&quot;:&quot;2008-01-20&quot;,&quot;genre_ids&quot;:[18],&quot;id&quot;:1396,&quot;name&quot;:&quot;Breaking Bad&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Breaking Bad&quot;,&quot;overview&quot;:&quot;When Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family&#x27;s financial future at any cost as he enters the dangerous world of drugs and crime.&quot;,&quot;popularity&quot;:381.592,&quot;poster_path&quot;:&quot;/ggFHVNu6YYI5L9pCfOacjizRGt.jpg&quot;,&quot;vote_average&quot;:8.9,&quot;vote_count&quot;:11119},{&quot;backdrop_path&quot;:&quot;/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg&quot;,&quot;first_air_date&quot;:&quot;2023-01-15&quot;,&quot;genre_ids&quot;:[18,10759],&quot;id&quot;:100088,&quot;name&quot;:&quot;The Last of Us&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;The Last of Us&quot;,&quot;overview&quot;:&quot;Twenty years after modern civilization has been destroyed, Joel, a hardened survivor, is hired to smuggle Ellie, a 14-year-old girl, out of an oppressive quarantine zone. What starts as a small job soon becomes a brutal, heartbreaking journey, as they both must traverse the United States and depend on each other for survival.&quot;,&quot;popularity&quot;:5116.709,&quot;poster_path&quot;:&quot;/uKvVjHNqB5VmOrdxqAt2F7J78ED.jpg&quot;,&quot;vote_average&quot;:8.8,&quot;vote_count&quot;:1696},{&quot;backdrop_path&quot;:&quot;/rkB4LyZHo1NHXFEDHl9vSD9r1lI.jpg&quot;,&quot;first_air_date&quot;:&quot;2021-11-06&quot;,&quot;genre_ids&quot;:[16,10765,10759,18],&quot;id&quot;:94605,&quot;name&quot;:&quot;Arcane&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Arcane&quot;,&quot;overview&quot;:&quot;Amid the stark discord of twin cities Piltover and Zaun, two sisters fight on rival sides of a war between magic technologies and clashing convictions.&quot;,&quot;popularity&quot;:66.246,&quot;poster_path&quot;:&quot;/fqldf2t8ztc9aiwn3k6mlX3tvRT.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:2898},{&quot;backdrop_path&quot;:&quot;/uGy4DCmM33I7l86W7iCskNkvmLD.jpg&quot;,&quot;first_air_date&quot;:&quot;2013-12-02&quot;,&quot;genre_ids&quot;:[16,35,10765,10759],&quot;id&quot;:60625,&quot;name&quot;:&quot;Rick and Morty&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Rick and Morty&quot;,&quot;overview&quot;:&quot;Rick is a mentally-unbalanced but scientifically gifted old man who has recently reconnected with his family. He spends most of his time involving his young grandson Morty in dangerous, outlandish adventures throughout space and alternate universes. Compounded with Morty&#x27;s already unstable family life, these events cause Morty much distress at home and school.&quot;,&quot;popularity&quot;:467.163,&quot;poster_path&quot;:&quot;/cvhNj9eoRBe5SxjCbQTkh05UP5K.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:7880},{&quot;backdrop_path&quot;:&quot;/5DUMPBSnHOZsbBv81GFXZXvDpo6.jpg&quot;,&quot;first_air_date&quot;:&quot;2022-10-12&quot;,&quot;genre_ids&quot;:[16,10759,10765,35],&quot;id&quot;:114410,&quot;name&quot;:&quot;Chainsaw Man&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;チェンソーマン&quot;,&quot;overview&quot;:&quot;Denji has a simple dream—to live a happy and peaceful life, spending time with a girl he likes. This is a far cry from reality, however, as Denji is forced by the yakuza into killing devils in order to pay off his crushing debts. Using his pet devil Pochita as a weapon, he is ready to do anything for a bit of cash.&quot;,&quot;popularity&quot;:515.11,&quot;poster_path&quot;:&quot;/npdB6eFzizki0WaZ1OvKcJrWe97.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:856},{&quot;backdrop_path&quot;:&quot;/790rH1ByeDJg6VPwBFxdzxHRepI.jpg&quot;,&quot;first_air_date&quot;:&quot;2019-04-06&quot;,&quot;genre_ids&quot;:[16,35],&quot;id&quot;:85990,&quot;name&quot;:&quot;Hitoribocchi no Marumaruseikatsu&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;ひとりぼっちの○○生活&quot;,&quot;overview&quot;:&quot;Hitori Bocchi suffers from extreme social anxiety, she&#x27;s not good at talking to people, takes pretty extreme actions, is surprisingly adept at avoiding people, her legs cramp when she overexerts herself, gets full of herself when alone, will vomit when exposed to extreme tension and often comes up with plans. Now she is entering middle school and her only friend, Yawara Kai, is attending a different school. This leaves Bocchi alone, surrounded by new classmates with whom she must make friends before Kai will talk to her again.&quot;,&quot;popularity&quot;:15.134,&quot;poster_path&quot;:&quot;/btoTzCw3zmjRtB99g2M5Mw2GUQG.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:127},{&quot;backdrop_path&quot;:&quot;/4Mt7WHox67uJ1yErwTBFcV8KWgG.jpg&quot;,&quot;first_air_date&quot;:&quot;1999-10-20&quot;,&quot;genre_ids&quot;:[10759,35,16],&quot;id&quot;:37854,&quot;name&quot;:&quot;One Piece&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;ワンピース&quot;,&quot;overview&quot;:&quot;Years ago, the fearsome Pirate King, Gol D. Roger was executed leaving a huge pile of treasure and the famous \&quot;One Piece\&quot; behind. Whoever claims the \&quot;One Piece\&quot; will be named the new King of the Pirates.\n\nMonkey D. Luffy, a boy who consumed a \&quot;Devil Fruit,\&quot; decides to follow in the footsteps of his idol, the pirate Shanks, and find the One Piece. It helps, of course, that his body has the properties of rubber and that he&#x27;s surrounded by a bevy of skilled fighters and thieves to help him along the way.\n\nLuffy will do anything to get the One Piece and become King of the Pirates!&quot;,&quot;popularity&quot;:112.622,&quot;poster_path&quot;:&quot;/dum1wnm6kJOUos0XJqjB8s2UWi9.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:3576},{&quot;backdrop_path&quot;:&quot;/70YdbMELM4b8x8VXjlubymb2bQ0.jpg&quot;,&quot;first_air_date&quot;:&quot;2017-03-19&quot;,&quot;genre_ids&quot;:[18,10751],&quot;id&quot;:70785,&quot;name&quot;:&quot;Anne with an E&quot;,&quot;origin_country&quot;:[&quot;CA&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Anne with an E&quot;,&quot;overview&quot;:&quot;A coming-of-age story about an outsider who, against all odds and numerous challenges, fights for love and acceptance and for her place in the world. The series centers on a young orphaned girl in the late 1890’s, who, after an abusive childhood spent in orphanages and the homes of strangers, is mistakenly sent to live with an elderly woman and her aging brother. Over time, 13-year-old Anne will transform their lives and eventually the small town in which they live with her unique spirit, fierce intellect and brilliant imagination.&quot;,&quot;popularity&quot;:67.747,&quot;poster_path&quot;:&quot;/6P6tXhjT5tK3qOXzxF9OMLlG7iz.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:4199},{&quot;backdrop_path&quot;:&quot;/6UH52Fmau8RPsMAbQbjwN3wJSCj.jpg&quot;,&quot;first_air_date&quot;:&quot;2021-03-25&quot;,&quot;genre_ids&quot;:[16,10765,10759,18],&quot;id&quot;:95557,&quot;name&quot;:&quot;Invincible&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Invincible&quot;,&quot;overview&quot;:&quot;Mark Grayson is a normal teenager except for the fact that his father is the most powerful superhero on the planet. Shortly after his seventeenth birthday, Mark begins to develop powers of his own and enters into his father’s tutelage.&quot;,&quot;popularity&quot;:51.73,&quot;poster_path&quot;:&quot;/yDWJYRAwMNKbIYT8ZB33qy84uzO.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:3390},{&quot;backdrop_path&quot;:&quot;/2UG177tWHy7xRmMKWJHB7nAUmKd.jpg&quot;,&quot;first_air_date&quot;:&quot;2009-04-05&quot;,&quot;genre_ids&quot;:[10759,16,10765],&quot;id&quot;:31911,&quot;name&quot;:&quot;Fullmetal Alchemist: Brotherhood&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;鋼の錬金術師 FULLMETAL ALCHEMIST&quot;,&quot;overview&quot;:&quot;Edward and Alphonse Elric&#x27;s reckless disregard for alchemy&#x27;s fun­damental laws ripped half of Ed&#x27;s limbs from his body and left Al&#x27;s soul clinging to a cold suit of armor. To restore what was lost, the brothers scour a war-torn land for the Philosopher&#x27;s Sto­ne, a fabled relic which grants the ability to perform alchemy in impossible ways.\n\nThe Elrics are not alone in their search; the corrupt State Military is also eager to harness the artifact&#x27;s power. So too are the strange Homunculi and their shadowy creator. The mythical gem lures exotic alchemists from distant kingdoms, scarring some deeply enough to inspire murder. As the Elrics find their course altered by these enemies and allies, their purpose remains unchanged – and their bond unbreakable.&quot;,&quot;popularity&quot;:69.453,&quot;poster_path&quot;:&quot;/5ZFUEOULaVml7pQuXxhpR2SmVUw.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:1567},{&quot;backdrop_path&quot;:&quot;/smSbK5cd8T9XHcxEUcems23BDEF.jpg&quot;,&quot;first_air_date&quot;:&quot;2016-12-02&quot;,&quot;genre_ids&quot;:[18,10765,35],&quot;id&quot;:67915,&quot;name&quot;:&quot;Goblin&quot;,&quot;origin_country&quot;:[&quot;KR&quot;],&quot;original_language&quot;:&quot;ko&quot;,&quot;original_name&quot;:&quot;쓸쓸하고 찬란하神-도깨비&quot;,&quot;overview&quot;:&quot;In his quest for a bride to break his immortal curse, a 939-year-old guardian of souls meets a grim reaper and a sprightly student with a tragic past.&quot;,&quot;popularity&quot;:82.632,&quot;poster_path&quot;:&quot;/c2gon6zbqzL73DOl8mPQMMUJXvE.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:2438},{&quot;backdrop_path&quot;:&quot;/iBAtBLqCMON3NPIjyQ1wdMbpTAk.jpg&quot;,&quot;first_air_date&quot;:&quot;2019-04-06&quot;,&quot;genre_ids&quot;:[16,10765,10759],&quot;id&quot;:85937,&quot;name&quot;:&quot;Demon Slayer: Kimetsu no Yaiba&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;鬼滅の刃&quot;,&quot;overview&quot;:&quot;It is the Taisho Period in Japan. Tanjiro, a kindhearted boy who sells charcoal for a living, finds his family slaughtered by a demon. To make matters worse, his younger sister Nezuko, the sole survivor, has been transformed into a demon herself. Though devastated by this grim reality, Tanjiro resolves to become a “demon slayer” so that he can turn his sister back into a human, and kill the demon that massacred his family.&quot;,&quot;popularity&quot;:91.936,&quot;poster_path&quot;:&quot;/wrCVHdkBlBWdJUZPvnJWcBRuhSY.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:4783},{&quot;backdrop_path&quot;:&quot;/dJ8yrSokdTMnhKJw06MllSfCegb.jpg&quot;,&quot;first_air_date&quot;:&quot;2019-01-12&quot;,&quot;genre_ids&quot;:[16,35,18],&quot;id&quot;:83121,&quot;name&quot;:&quot;Kaguya-sama: Love Is War&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;かぐや様は告らせたい～天才たちの恋愛頭脳戦～&quot;,&quot;overview&quot;:&quot;Considered a genius due to having the highest grades in the country, Miyuki Shirogane leads the prestigious Shuchiin Academy&#x27;s student council as its president, working alongside the beautiful and wealthy vice president Kaguya Shinomiya. The two are often regarded as the perfect couple by students despite them not being in any sort of romantic relationship.&quot;,&quot;popularity&quot;:64.865,&quot;poster_path&quot;:&quot;/5khbC6AuNgnvnoDbjIMKCOhEtIc.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:590},{&quot;backdrop_path&quot;:&quot;/3ILMlmC30QUnYkY3XEBOyJ82Dqu.jpg&quot;,&quot;first_air_date&quot;:&quot;2016-04-03&quot;,&quot;genre_ids&quot;:[10759,16],&quot;id&quot;:65930,&quot;name&quot;:&quot;My Hero Academia&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;僕のヒーローアカデミア&quot;,&quot;overview&quot;:&quot;In a world where eighty percent of the population has some kind of super-powered Quirk, Izuku was unlucky enough to be born completely normal. But that won&#x27;t stop him from enrolling in a prestigious hero academy. Now, he&#x27;ll get his first taste of brutal rivalry from other schools as he braves the cutthroat, no-holds-barred provisional license exam.&quot;,&quot;popularity&quot;:84.899,&quot;poster_path&quot;:&quot;/ivOLM47yJt90P19RH1NvJrAJz9F.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:4164},{&quot;backdrop_path&quot;:&quot;/iLR6tKvMu67oSK0DIgDutkPBaiy.jpg&quot;,&quot;first_air_date&quot;:&quot;2018-07-08&quot;,&quot;genre_ids&quot;:[35,16],&quot;id&quot;:80539,&quot;name&quot;:&quot;Asobi Asobase - workshop of fun -&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;あそびあそばせ&quot;,&quot;overview&quot;:&quot;During recess, Olivia, a foreign transfer student who doesn&#x27;t know English, plays a game of \&quot;look-the-other-way\&quot; with Hanako Honda, a loud-mouthed airhead. Their rowdy behavior spurs the ire of Kasumi Nomura, a deadpan loner constantly teased by her older sister for her tendency to lose games. Not willing to compete, Kasumi declines Olivia&#x27;s offer to join the fun, but eventually gets involved anyway and dispenses her own brand of mischief. Soon, a strange friendship blossoms between the peculiar trio, and they decide to form the \&quot;Pastime Club,\&quot; where they are free to resume their daily hijinks.\n\nWhether it be failing to learn English, trying desperately to become popular, or getting caught by teachers at the wrong time, school life will never be boring when these girls are up to their hilarious antics.&quot;,&quot;popularity&quot;:17.311,&quot;poster_path&quot;:&quot;/zWE3bnCILcRpfQCsxBkMsgcEjOE.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:114},{&quot;backdrop_path&quot;:&quot;/2vbE9ajftJ7dkqUAyxDS0WFILx8.jpg&quot;,&quot;first_air_date&quot;:&quot;2010-09-06&quot;,&quot;genre_ids&quot;:[16,35],&quot;id&quot;:31132,&quot;name&quot;:&quot;Regular Show&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Regular Show&quot;,&quot;overview&quot;:&quot;Two bored groundskeepers, Mordecai (a six-foot-tall blue jay) and Rigby (a hyperactive raccoon) are best friends who spend their days trying to entertain themselves by any means necessary, much to the displeasure of their boss. Their everyday pursuits often lead to things spiraling out of control and into the surreal.&quot;,&quot;popularity&quot;:198.046,&quot;poster_path&quot;:&quot;/mS5SLxMYcKfUxA0utBSR5MOAWWr.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:1658},{&quot;backdrop_path&quot;:&quot;/nLKYAJCEi6OQVji1HJIxSQ74H9s.jpg&quot;,&quot;first_air_date&quot;:&quot;2005-02-21&quot;,&quot;genre_ids&quot;:[16,10759,10765],&quot;id&quot;:246,&quot;name&quot;:&quot;Avatar: The Last Airbender&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;Avatar: The Last Airbender&quot;,&quot;overview&quot;:&quot;In a war-torn world of elemental magic, a young boy reawakens to undertake a dangerous mystic quest to fulfill his destiny as the Avatar, and bring peace to the world.&quot;,&quot;popularity&quot;:65.421,&quot;poster_path&quot;:&quot;/cHFZA8Tlv03nKTGXhLOYOLtqoSm.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:3137},{&quot;backdrop_path&quot;:&quot;/tKh3pc5MEjCIGV7hSJX76qi8aGA.jpg&quot;,&quot;first_air_date&quot;:&quot;2018-01-13&quot;,&quot;genre_ids&quot;:[16],&quot;id&quot;:76121,&quot;name&quot;:&quot;DARLING in the FRANXX&quot;,&quot;origin_country&quot;:[&quot;JP&quot;],&quot;original_language&quot;:&quot;ja&quot;,&quot;original_name&quot;:&quot;ダーリン・イン・ザ・フランキス&quot;,&quot;overview&quot;:&quot;The story is set in the distant future. The land is ruined, and humanity establishes the mobile fort city Plantation. Pilots produced inside Plantation live in Mistilteinn, also know as the \&quot;birdcage.\&quot; Children live there knowing nothing of the outside world or the freedom of the sky. Their lives consist of battling to carry out missions. Their enemies are mysterious giant lifeforms known as Kyouryuu, and the children pilot robots called Franxx to face off against them. For the children, riding the Franxx proves their existence.\n\nA boy named Hiro is called Code:016, and he was once known as a prodigy. However, he has fallen behind, and his existence seems unnecessary. Not piloting a Franxx is the same as ceasing to exist. One day, a mysterious girl known as \&quot;Zero Two\&quot; appears before him. Two horns grow out of her head.&quot;,&quot;popularity&quot;:51.597,&quot;poster_path&quot;:&quot;/yyUxeNpQoD23XWEdPXLJRGQEtHT.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:1658},{&quot;backdrop_path&quot;:&quot;/fCz519JJeXEtMfR4CmM9tR7rZOB.jpg&quot;,&quot;first_air_date&quot;:&quot;2022-04-14&quot;,&quot;genre_ids&quot;:[10764],&quot;id&quot;:154521,&quot;name&quot;:&quot;The Kardashians&quot;,&quot;origin_country&quot;:[&quot;US&quot;],&quot;original_language&quot;:&quot;en&quot;,&quot;original_name&quot;:&quot;The Kardashians&quot;,&quot;overview&quot;:&quot;The family you know and love is here with a brand new series, giving an all-access pass into their lives. Kris, Kourtney, Kim, Khloé, Kendall, and Kylie bring the cameras back to reveal the truth behind the headlines. From the intense pressures of running billion-dollar businesses to the hilarious joys of playtime and school drop-offs, this series brings viewers into the fold with a rivetingly honest story of love &amp; life in the spotlight.&quot;,&quot;popularity&quot;:57.769,&quot;poster_path&quot;:&quot;/ntLiiyI2AVIVAtVKwUYqi36e3bM.jpg&quot;,&quot;vote_average&quot;:8.7,&quot;vote_count&quot;:1867}],&quot;total_pages&quot;:138,&quot;total_results&quot;:2757} for the request getTopRatedTvProgrammes<br/></div></td></tr></tbody></table></body></html>
