@@ -1,5 +1,4 @@
 import unittest
-
 import jsonpath
 import pytest
 import requests
@@ -15,15 +14,14 @@ class Post_data(unittest.TestCase):
     @pytest.mark.postMovieRating
     def test_post_movie_rating(self):
         sessionId = test_create_session()
-        file = open("..//Data/postRating.json", 'r')
+        file = open("Data/postRating.json", 'r')
         jsonData = json.loads(file.read())
-        url = f"{read_config('baseUrl', 'baseUrl')}{read_config('type', 'movie')}/{read_config('ids', 'movieId')}/rating?api_key={read_config('APIKey', 'api')}&session_id={sessionId}"
+        url = str(read_config('baseUrl', 'baseUrl'))+str(read_config('type', 'movie'))+"/"+str(read_config('ids', 'movieId'))+"/"+"rating?api_key="+str(read_config('APIKey', 'api'))+"&session_id="+str(sessionId)
         response = requests.post(url, jsonData)
         print(response.status_code)
         print(response.text)
         statusMessage = jsonpath.jsonpath(response.json(), "status_message")[0]
-        self.log.info(
-            f"got response from server as {response.status_code} and the response body as {response.json()} for the request postMovieRating")
+        # self.log.info(f"got response from server as {response.status_code} and the response body as {response.json()} for the request postMovieRating")
         assert response.status_code == 201
         assert statusMessage == "The item/record was updated successfully."
         

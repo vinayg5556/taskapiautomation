@@ -9,18 +9,18 @@ from webdriver_manager.chrome import ChromeDriverManager
 from Utilities.ReadConfigFile import read_config
 from Utilities.CustomLogger import custom_logger
 
-
 apiToken = read_config('APIKey', 'api')
 log = custom_logger()
 
+
 @pytest.mark.tokenGenerate
 def test_generate_token():
-    url = f"{read_config('baseUrl', 'baseUrl')}authentication/token/new"
-    payload = f"api_key={apiToken}"
+    url = str(read_config('baseUrl', 'baseUrl')) + "authentication/token/new"
+    payload = "api_key=" + str(apiToken)
     response = requests.get(url, payload)
     print("token response", str(response.json()))
     token = jsonpath.jsonpath(response.json(), 'request_token')[0]
-    log.info(f"token has been generated for the request and token is {token} and the response from serever is {response.status_code} for generateToken request")
+    # log.info(f"token has been generated for the request and token is {token} and the response from serever is {response.status_code} for generateToken request")
     assert response.status_code == 200
     return token
 
@@ -32,7 +32,7 @@ requestToken = test_generate_token()
 def test_get_approve_request():
     print(requestToken)
     time.sleep(5)
-    url = f"http://www.themoviedb.org/authenticate/{requestToken}"
+    url = "http://www.themoviedb.org/authenticate/" + str(requestToken)
     driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.maximize_window()
     driver.implicitly_wait(15)
@@ -54,14 +54,15 @@ def test_get_approve_request():
 @pytest.mark.createSession
 def test_create_session():
     test_get_approve_request()
-    url = f"https://api.themoviedb.org/3/authentication/session/new?api_key={apiToken}&request_token={requestToken}"
+    url = "https://api.themoviedb.org/3/authentication/session/new?api_key=" + str(apiToken) + "&request_token=" + str(
+        requestToken)
     response = requests.post(url)
     print(response.status_code)
     print(response.json())
     sessionId = jsonpath.jsonpath(response.json(), "session_id")[0]
     success = jsonpath.jsonpath(response.json(), "success")[0]
     print(sessionId)
-    log.info(f"got response from server as {response.status_code} and the response body is {response.json()} for the request createSession")
+    # log.info(f"got response from server as {response.status_code} and the response body is {response.json()} for the request createSession")
     assert response.status_code == 200
     assert str(success) == "True"
     return sessionId
