@@ -1,19 +1,19 @@
 import unittest
 import requests
 import pytest
-from Utilities.ReadConfigFile import readConfig
-from Utilities.CustomLogger import customLogger
+from Utilities.ReadConfigFile import read_config
+from Utilities.CustomLogger import custom_logger
 import jsonpath
 
 
 class Tv_programs(unittest.TestCase):
-    baseUrl = readConfig('baseUrl', 'baseUrl')
-    payload = f"api_key={readConfig('APIKey', 'api')}&language={readConfig('language', 'lang')}"
-    log = customLogger()
+    baseUrl = read_config('baseUrl', 'baseUrl')
+    payload = f"api_key={read_config('APIKey', 'api')}&language={read_config('language', 'lang')}"
+    log = custom_logger()
 
     @pytest.mark.tvProgrammeDetails
     def test_get_tv_programme_details(self):
-        url = f"{self.baseUrl}{readConfig('type', 'tv')}/{readConfig('ids', 'programmeTvId')}"
+        url = f"{self.baseUrl}{read_config('type', 'tv')}/{read_config('ids', 'programmeTvId')}"
         response = requests.get(url, self.payload)
         programmeName = jsonpath.jsonpath(response.json(), 'original_name')
         print(programmeName[0])
@@ -24,7 +24,7 @@ class Tv_programs(unittest.TestCase):
 
     @pytest.mark.topRatedTvProgrammes
     def test_get_tv_top_rated_programs(self):
-        url = f"{self.baseUrl}{readConfig('type', 'tv')}/{readConfig('ids', 'rated')}"
+        url = f"{self.baseUrl}{read_config('type', 'tv')}/{read_config('ids', 'rated')}"
         response = requests.get(url, self.payload)
         for i in range(len(jsonpath.jsonpath(response.json(), 'results')[0])):
             ProgrammeName = jsonpath.jsonpath(response.json(), 'results')[0][i]['name']
@@ -34,7 +34,7 @@ class Tv_programs(unittest.TestCase):
 
     @pytest.mark.getTvEpisodeInfo
     def test_get_tv_episodes(self):
-        url = f"{self.baseUrl}{readConfig('type', 'tv')}/{readConfig('ids', 'episodesTvId')}/{readConfig('type', 'season')}/{readConfig('ids', 'seasonId')}/{readConfig('type', 'episode')}/{readConfig('ids', 'episodeId')}"
+        url = f"{self.baseUrl}{read_config('type', 'tv')}/{read_config('ids', 'episodesTvId')}/{read_config('type', 'season')}/{read_config('ids', 'seasonId')}/{read_config('type', 'episode')}/{read_config('ids', 'episodeId')}"
         response = requests.get(url, self.payload)
         episode = jsonpath.jsonpath(response.json(), 'episode_number')
         season = jsonpath.jsonpath(response.json(), 'season_number')

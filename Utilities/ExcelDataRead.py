@@ -1,5 +1,5 @@
 import openpyxl
-from Utilities.ReadConfigFile import readConfig
+from Utilities.ReadConfigFile import read_config
 
 
 def getRowData(file_path, sheet_name):
@@ -30,7 +30,7 @@ def writeData(file_path, sheet_name, row_num, col_num, data):
 
 
 def getInputSingleRowData(sheet_name):
-    path = readConfig("Input", "path")
+    path = read_config("Input", "path")
     rows = getRowData(path, sheet_name)
     col = getColumnData(path, sheet_name)
     dataList = []
@@ -42,7 +42,7 @@ def getInputSingleRowData(sheet_name):
 
 
 def getInputData(sheet_name):
-    path = readConfig("Input", "path")
+    path = read_config("Input", "path")
     rows = getRowData(path, sheet_name)
     col = getColumnData(path, sheet_name)
     mainList = []

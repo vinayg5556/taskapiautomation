@@ -6,16 +6,16 @@ import jsonpath
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from Utilities.ReadConfigFile import readConfig
-from Utilities.CustomLogger import customLogger
+from Utilities.ReadConfigFile import read_config
+from Utilities.CustomLogger import custom_logger
 
 
-apiToken = readConfig('APIKey', 'api')
-log = customLogger()
+apiToken = read_config('APIKey', 'api')
+log = custom_logger()
 
 @pytest.mark.tokenGenerate
 def test_generate_token():
-    url = f"{readConfig('baseUrl', 'baseUrl')}authentication/token/new"
+    url = f"{read_config('baseUrl', 'baseUrl')}authentication/token/new"
     payload = f"api_key={apiToken}"
     response = requests.get(url, payload)
     print("token response", str(response.json()))

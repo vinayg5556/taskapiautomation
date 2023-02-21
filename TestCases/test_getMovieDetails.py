@@ -1,20 +1,21 @@
 import unittest
 import requests
 import pytest
-from Utilities.ReadConfigFile import readConfig
-from Utilities.CustomLogger import customLogger
+from Utilities.ReadConfigFile import read_config
+from Utilities.CustomLogger import custom_logger
 import jsonpath
 
 
 class Tv_programs(unittest.TestCase):
-    baseurl = readConfig('baseUrl', 'baseUrl')
+    baseurl = read_config('baseUrl', 'baseUrl')
     print(baseurl)
-    payload = f"api_key={readConfig('APIKey', 'api')}&language={readConfig('language', 'lang')}"
-    log = customLogger()
+    key = read_config('APIKey', 'api')
+    payload = f"api_key={read_config('APIKey', 'api')}&language={read_config('language', 'lang')}"
+    log = custom_logger()
 
     @pytest.mark.getLatestMovies
     def test_get_latestMovies(self):
-        url = f"{self.baseurl}{readConfig('type','movie')}/{readConfig('ids','latest')}"
+        url = f"{self.baseurl}{read_config('type','movie')}/{read_config('ids','latest')}"
         response = requests.get(url, self.payload)
         print(response.status_code)
         print(response.json())
@@ -23,7 +24,7 @@ class Tv_programs(unittest.TestCase):
 
     @pytest.mark.getTopRatedMovies
     def test_get_topRatedMovies(self):
-        url = f"{self.baseurl}{readConfig('type','movie')}/{readConfig('ids','rated')}"
+        url = f"{self.baseurl}{read_config('type','movie')}/{read_config('ids','rated')}"
         response = requests.get(url, self.payload)
         print(response.status_code)
         self.log.info(
@@ -32,15 +33,15 @@ class Tv_programs(unittest.TestCase):
             movieName = jsonpath.jsonpath(response.json(), 'results')[0][i]['title']
             vote_rating = jsonpath.jsonpath(response.json(), 'results')[0][i]['vote_average']
             print(str(movieName), "---", str(vote_rating))
-            if vote_rating > float(readConfig('avgRating', 'voteAvgRating')):
+            if vote_rating > float(read_config('avgRating', 'voteAvgRating')):
                 print(str(vote_rating), "---", str(True))
             else:
                 print(str(vote_rating), "---", str(False))
 
     @pytest.mark.getMovieById
     def test_get_movieById(self):
-        url = f"{self.baseurl}{readConfig('type', 'movie')}/{readConfig('ids', 'movieId')}"
-        payload = f"api_key={readConfig('APIKey', 'api')}"
+        url = f"{self.baseurl}{read_config('type', 'movie')}/{read_config('ids', 'movieId')}"
+        payload = f"api_key={read_config('APIKey', 'api')}"
         response = requests.get(url, payload)
         print(response.status_code)
         print(response.json())

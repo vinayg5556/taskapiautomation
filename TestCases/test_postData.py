@@ -4,20 +4,20 @@ import jsonpath
 import pytest
 import requests
 import json
-from Utilities.CustomLogger import customLogger
-from Utilities.ReadConfigFile import readConfig
+from Utilities.CustomLogger import custom_logger
+from Utilities.ReadConfigFile import read_config
 from TestCases.test_getRequestToken import test_create_session
 
 
 class Post_data(unittest.TestCase):
-    log = customLogger()
+    log = custom_logger()
 
     @pytest.mark.postMovieRating
     def test_post_movie_rating(self):
         sessionId = test_create_session()
         file = open("..//Data/postRating.json", 'r')
         jsonData = json.loads(file.read())
-        url = f"{readConfig('baseUrl', 'baseUrl')}{readConfig('type', 'movie')}/{readConfig('ids', 'movieId')}/rating?api_key={readConfig('APIKey', 'api')}&session_id={sessionId}"
+        url = f"{read_config('baseUrl', 'baseUrl')}{read_config('type', 'movie')}/{read_config('ids', 'movieId')}/rating?api_key={read_config('APIKey', 'api')}&session_id={sessionId}"
         response = requests.post(url, jsonData)
         print(response.status_code)
         print(response.text)
