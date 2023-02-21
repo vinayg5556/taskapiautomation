@@ -19,7 +19,7 @@ class Tv_programs(unittest.TestCase):
         response = requests.get(url, self.payload)
         print(response.status_code)
         print(response.json())
-        self.log.info(f"got response for the request as {response.status_code} and the response body as {response.json()} for the request getLatestMovieDetails")
+        # self.log.info(f"got response for the request as {response.status_code} and the response body as {response.json()} for the request getLatestMovieDetails")
         assert response.status_code == 200
 
     @pytest.mark.getTopRatedMovies
