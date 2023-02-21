@@ -5,7 +5,7 @@ import requests
 import json
 from Utilities.CustomLogger import custom_logger
 from Utilities.ReadConfigFile import read_config
-from TestCases.test_getRequestToken import test_create_session
+from TestCases.test_get_request_token import test_create_session
 
 
 class Post_data(unittest.TestCase):
